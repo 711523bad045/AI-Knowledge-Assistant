@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from qa_engine import answer_question
 from document_loader import load_document
@@ -13,9 +13,13 @@ app.add_middleware(
 )
 
 @app.post("/upload")
-async def upload_document(file: UploadFile):
-    load_document(file)
-    return {"message": "Document uploaded successfully"}
+async def upload_document(file: UploadFile = File(...)):
+    path = load_document(file)
+    return {
+        "message": "File uploaded successfully",
+        "filename": file.filename,
+        "path": path
+    }
 
 @app.get("/ask")
 async def ask(question: str):
