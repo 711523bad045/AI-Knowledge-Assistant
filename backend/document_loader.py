@@ -1,17 +1,27 @@
 import os
+import faiss
+import numpy as np
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
 
 UPLOAD_DIR = "uploads"
-VECTOR_DB_DIR = "vector_store"
 
-# Load embedding model
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Global vector store
-vector_store = None
+index = None
+documents = []
+
+
+def simple_text_splitter(text, chunk_size=500, overlap=100):
+    chunks = []
+    start = 0
+
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start = end - overlap
+
+    return chunks
 
 
 def extract_text(file_path: str) -> str:
@@ -30,7 +40,7 @@ def extract_text(file_path: str) -> str:
 
 
 def load_document(file):
-    global vector_store
+    global index, documents
 
     if not os.path.exists(UPLOAD_DIR):
         os.makedirs(UPLOAD_DIR)
@@ -40,27 +50,20 @@ def load_document(file):
     with open(file_path, "wb") as f:
         f.write(file.file.read())
 
-    # Extract text
     text = extract_text(file_path)
+    chunks = simple_text_splitter(text)
 
-    # Split into chunks
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=100
-    )
-    chunks = splitter.split_text(text)
-
-    # Create embeddings
     embeddings = embedding_model.encode(chunks)
+    embeddings = np.array(embeddings).astype("float32")
 
-    # Store in FAISS
-    vector_store = FAISS.from_embeddings(
-        list(zip(chunks, embeddings)),
-        embedding_model
-    )
+    if index is None:
+        index = faiss.IndexFlatL2(embeddings.shape[1])
 
-    return file_path
+    index.add(embeddings)
+    documents.extend(chunks)
+
+    return {"chunks_added": len(chunks)}
 
 
 def get_vector_store():
-    return vector_store
+    return index, documents
