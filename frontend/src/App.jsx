@@ -1,49 +1,82 @@
 import { useState } from "react";
-import "./index.css";
+import axios from "axios";
+import "./App.css";
 
 function App() {
+  const [file, setFile] = useState(null);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const backendUrl = "http://127.0.0.1:8000";
+
+  const uploadFile = async () => {
+    if (!file) {
+      alert("Please select a file first");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      await axios.post(`${backendUrl}/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      alert("File uploaded successfully!");
+    } catch (err) {
+      alert("Upload failed");
+      console.error(err);
+    }
+  };
+
   const askQuestion = async () => {
-    if (!question.trim()) return;
+    if (!question) return;
 
     setLoading(true);
+    setAnswer("");
+
     try {
-      const res = await fetch(
-        `http://127.0.0.1:8000/ask?question=${encodeURIComponent(question)}`
-      );
-      const data = await res.json();
-      setAnswer(data.answer);
+      const res = await axios.get(`${backendUrl}/ask`, {
+        params: { question },
+      });
+      setAnswer(res.data.answer);
     } catch (err) {
-      setAnswer("Error connecting to backend");
+      console.error(err);
+      setAnswer("Error getting answer");
     }
+
     setLoading(false);
   };
 
   return (
-    <div className="container">
-      <h1>AI Knowledge Assistant</h1>
-      <p>Ask questions from IT documents</p>
+    <div style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
+      <h1>📄 AI Knowledge Assistant</h1>
 
+      <hr />
+
+      <h3>1️⃣ Upload Document (PDF / TXT)</h3>
+      <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+      <br /><br />
+      <button onClick={uploadFile}>Upload</button>
+
+      <hr />
+
+      <h3>2️⃣ Ask Question</h3>
       <input
+        style={{ width: "100%", padding: 10 }}
         type="text"
-        placeholder="Enter your question..."
+        placeholder="Ask something from the document..."
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
       />
+      <br /><br />
+      <button onClick={askQuestion}>Ask</button>
 
-      <button onClick={askQuestion}>
-        {loading ? "Thinking..." : "Ask"}
-      </button>
+      <hr />
 
-      {answer && (
-        <div className="answer-box">
-          <strong>Answer:</strong>
-          <p>{answer}</p>
-        </div>
-      )}
+      <h3>🧠 Answer:</h3>
+      {loading ? <p>Thinking...</p> : <p>{answer}</p>}
     </div>
   );
 }
