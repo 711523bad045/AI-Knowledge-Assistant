@@ -15,27 +15,23 @@ documents = []
 def simple_text_splitter(text, chunk_size=500, overlap=100):
     chunks = []
     start = 0
-
     while start < len(text):
         end = start + chunk_size
         chunks.append(text[start:end])
         start = end - overlap
-
     return chunks
 
 
-def extract_text(file_path: str) -> str:
+def extract_text(file_path):
     if file_path.endswith(".pdf"):
         reader = PdfReader(file_path)
         text = ""
         for page in reader.pages:
             text += page.extract_text() or ""
         return text
-
     elif file_path.endswith(".txt"):
         with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
-
     return ""
 
 

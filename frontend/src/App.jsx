@@ -7,6 +7,7 @@ function App() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploaded, setUploaded] = useState(false);
 
   const backendUrl = "http://127.0.0.1:8000";
 
@@ -23,7 +24,8 @@ function App() {
       await axios.post(`${backendUrl}/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      alert("File uploaded successfully!");
+      alert("File uploaded and processed!");
+      setUploaded(true);
     } catch (err) {
       alert("Upload failed");
       console.error(err);
@@ -43,40 +45,51 @@ function App() {
       setAnswer(res.data.answer);
     } catch (err) {
       console.error(err);
-      setAnswer("Error getting answer");
+      setAnswer("Error getting answer from server");
     }
 
     setLoading(false);
   };
 
   return (
-    <div style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
+    <div className="container">
       <h1>📄 AI Knowledge Assistant</h1>
+      <p className="subtitle">Upload a document and chat with it using offline AI</p>
 
-      <hr />
+      {/* Upload Card */}
+      <div className="card">
+        <h2>📤 Upload Document</h2>
+        <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+        <button onClick={uploadFile}>Upload & Process</button>
+        {uploaded && <p className="success">✅ Document ready for questions</p>}
+      </div>
 
-      <h3>1️⃣ Upload Document (PDF / TXT)</h3>
-      <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-      <br /><br />
-      <button onClick={uploadFile}>Upload</button>
+      {/* Chat Card */}
+      <div className="card">
+        <h2>💬 Ask a Question</h2>
+        <input
+          className="question-input"
+          type="text"
+          placeholder="Ask something from the document..."
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+        />
+        <button onClick={askQuestion}>Ask</button>
 
-      <hr />
+        <div className="answer-box">
+          {loading ? (
+            <p className="thinking">🤔 Thinking...</p>
+          ) : answer ? (
+            <p>{answer}</p>
+          ) : (
+            <p className="hint">Answer will appear here...</p>
+          )}
+        </div>
+      </div>
 
-      <h3>2️⃣ Ask Question</h3>
-      <input
-        style={{ width: "100%", padding: 10 }}
-        type="text"
-        placeholder="Ask something from the document..."
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-      />
-      <br /><br />
-      <button onClick={askQuestion}>Ask</button>
-
-      <hr />
-
-      <h3>🧠 Answer:</h3>
-      {loading ? <p>Thinking...</p> : <p>{answer}</p>}
+      <footer>
+        <p>🚀 Built with React + FastAPI + FAISS + Offline AI</p>
+      </footer>
     </div>
   );
 }
